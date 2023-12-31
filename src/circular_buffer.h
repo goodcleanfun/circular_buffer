@@ -113,6 +113,7 @@
         if (!ret) return false;                                                             \
         memcpy(dst->a, src->a, n * sizeof(type));                                           \
         dst->m = n;                                                                         \
+        dst->n = n;                                                                         \
         return ret;                                                                         \
     }                                                                                       \
     static inline name *name##_new_copy(name *buffer, size_t n) {                           \
@@ -185,5 +186,70 @@
         }                                                               \
         return true;                                                    \
     }
+
+#define CIRCULAR_BUFFER_INIT_FIXED(name, type)                                              \
+    __CIRCULAR_BUFFER_BASE(name, type)                                                      \
+    __CIRCULAR_BUFFER_DESTROY(name, type)                                                   \
+    static inline bool name##_copy(name *dst, name *src, size_t n) {                        \
+        bool ret = true;                                                                    \
+        if (dst->m < n) return false;                                                       \
+        if (!ret) return false;                                                             \
+        memcpy(dst->a, src->a, n * sizeof(type));                                           \
+        dst->m = n;                                                                         \
+        dst->n = n;                                                                         \
+        return ret;                                                                         \
+    }                                                                                       \
+    static inline name *name##_new_copy(name *buffer, size_t n) {                           \
+        name *cpy = name##_new_size(n);                                                     \
+        if (!name##_copy(cpy, buffer, n)) return NULL;                                      \
+        return cpy;                                                                         \
+    }                                                                                       \
+    static inline bool name##_push(name *buffer, type value) {                              \
+        size_t tail = buffer->tail;                                                         \
+        buffer->a[tail] = value;                                                            \
+        buffer->tail = (tail + 1) % buffer->m;                                              \
+        if (buffer->n < buffer->m) {                                                        \
+            buffer->n++;                                                                    \
+        } else {                                                                            \
+            buffer->head = buffer->tail;                                                    \
+        }                                                                                   \
+        return true;                                                                        \
+    }                                                                                       \
+    static inline bool name##_push_left(name *buffer, type value) {                         \
+        size_t head = buffer->head;                                                         \
+        if (head == 0) {                                                                    \
+            buffer->head = buffer->m - 1;                                                   \
+        } else {                                                                            \
+            buffer->head--;                                                                 \
+        }                                                                                   \
+        buffer->a[buffer->head] = value;                                                    \
+        if (buffer->n < buffer->m) {                                                        \
+            buffer->n++;                                                                    \
+        } else {                                                                            \
+            buffer->tail = buffer->head;                                                    \
+        }                                                                                   \
+        return true;                                                                        \
+    }                                                                                       \
+    static inline bool name##_pop(name *buffer, type *result) {                             \
+        if (!buffer) return false;                                      \
+        if (buffer->n == 0) return false;                               \
+        *result = buffer->a[buffer->tail];                              \
+        if (buffer->tail == 0) {                                        \
+            buffer->tail = buffer->m - 1;                               \
+        } else {                                                        \
+            buffer->tail--;                                             \
+        }                                                               \
+        buffer->n--;                                                    \
+        return true;                                                    \
+    }                                                                   \
+    static inline bool name##_pop_left(name *buffer, type *result) {    \
+        if (!buffer) return false;                                      \
+        if (buffer->n == 0) return false;                               \
+        *result = buffer->a[buffer->head];                              \
+        buffer->head = (buffer->head + 1) % buffer->m;                  \
+        buffer->n--;                                                    \
+        return true;                                                    \
+    }
+
 
 #endif
