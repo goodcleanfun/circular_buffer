@@ -1,9 +1,20 @@
 #include "greatest/greatest.h"
+
+#define DEFAULT_BUFFER_SIZE 8
+
+#define BUFFER_NAME test_buffer
+#define BUFFER_TYPE int
 #include "circular_buffer.h"
+#undef BUFFER_NAME
+#undef BUFFER_TYPE
 
-CIRCULAR_BUFFER_INIT(test_buffer, int)
-CIRCULAR_BUFFER_INIT_FIXED(test_fixed_buffer, int)
-
+#define BUFFER_NAME test_fixed_buffer
+#define BUFFER_TYPE int
+#define BUFFER_FIXED
+#include "circular_buffer.h"
+#undef BUFFER_NAME
+#undef BUFFER_TYPE
+#undef BUFFER_FIXED
 
 TEST test_buffer_wraparound_and_resize(void) {
     test_buffer *buf = test_buffer_new();
@@ -30,9 +41,10 @@ TEST test_buffer_wraparound_and_resize(void) {
 
     int after_left_pop[] = {2, 3, 4, 5, 6, 7};
 
+    int p = 0;
     int j = 0;
-    circular_buffer_foreach(buf, elem, {
-        ASSERT_EQ(elem, after_left_pop[j++]);
+    circular_buffer_foreach(buf, j, elem, p, {
+        ASSERT_EQ(elem, after_left_pop[j]);
     })
 
     i = DEFAULT_BUFFER_SIZE;
@@ -46,14 +58,14 @@ TEST test_buffer_wraparound_and_resize(void) {
 
     int logical_after_wraparound[] = {2, 3, 4, 5, 6, 7, 8, 9};
     j = 0;
-    circular_buffer_foreach(buf, elem, {
-        ASSERT_EQ(elem, logical_after_wraparound[j++]);
+    circular_buffer_foreach(buf, j, elem, p, {
+        ASSERT_EQ(elem, logical_after_wraparound[j]);
     })
 
     int physical_after_wraparound[] = {8, 9, 2, 3, 4, 5, 6, 7};
 
-    for (j = 0; j < buf->m; j++) {
-        ASSERT_EQ(buf->a[j], physical_after_wraparound[j]);
+    for (p = 0; p < buf->m; p++) {
+        ASSERT_EQ(buf->a[p], physical_after_wraparound[p]);
     }
 
     ASSERT_EQ(buf->head, 2);
@@ -67,8 +79,8 @@ TEST test_buffer_wraparound_and_resize(void) {
     ASSERT_EQ(buf->tail, prev_size + 1);
 
     int physical_after_resize[] = {2, 3, 4, 5, 6, 7, 8, 9, 10};
-    for (j = 0; j < buf->n; j++) {
-        ASSERT_EQ(buf->a[j], physical_after_resize[j]);
+    for (p = 0; p < buf->n; p++) {
+        ASSERT_EQ(buf->a[p], physical_after_resize[p]);
     }
 
     for (int j = 0; j < 4; j++) {
@@ -76,8 +88,8 @@ TEST test_buffer_wraparound_and_resize(void) {
     }
 
     int physical_after_no_wrap_resize[] = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
-    for (j = 0; j < buf->n; j++) {
-        ASSERT_EQ(buf->a[j], physical_after_no_wrap_resize[j]);
+    for (p = 0; p < buf->n; p++) {
+        ASSERT_EQ(buf->a[p], physical_after_no_wrap_resize[p]);
     }
 
     PASS();
@@ -113,9 +125,10 @@ TEST test_fixed_buffer_wraparound_and_overwrite(void) {
 
     int after_left_pop[] = {2, 3, 4, 5, 6, 7};
 
+    int p = 0;
     int j = 0;
-    circular_buffer_foreach(buf, elem, {
-        ASSERT_EQ(elem, after_left_pop[j++]);
+    circular_buffer_foreach(buf, j, elem, p, {
+        ASSERT_EQ(elem, after_left_pop[j]);
     })
 
     i = DEFAULT_BUFFER_SIZE;
@@ -129,8 +142,8 @@ TEST test_fixed_buffer_wraparound_and_overwrite(void) {
 
     int logical_after_wraparound[] = {2, 3, 4, 5, 6, 7, 8, 9};
     j = 0;
-    circular_buffer_foreach(buf, elem, {
-        ASSERT_EQ(elem, logical_after_wraparound[j++]);
+    circular_buffer_foreach(buf, j, elem, p, {
+        ASSERT_EQ(elem, logical_after_wraparound[j]);
     })
 
     int physical_after_wraparound[] = {8, 9, 2, 3, 4, 5, 6, 7};
@@ -145,15 +158,14 @@ TEST test_fixed_buffer_wraparound_and_overwrite(void) {
     size_t prev_size = buf->m;
 
     ASSERT(test_fixed_buffer_push(buf, i++));
-    printf("buf->m: %zu, buf->n: %zu\n", buf->m, buf->n);
     ASSERT_EQ(buf->n, buf->m);
     ASSERT_EQ(buf->head, 3);
     ASSERT_EQ(buf->tail, 3);
 
     int logical_after_overwrite[] = {3, 4, 5, 6, 7, 8, 9, 10};
     j = 0;
-    circular_buffer_foreach(buf, elem, {
-        ASSERT_EQ(elem, logical_after_overwrite[j++]);
+    circular_buffer_foreach(buf, j, elem, p, {
+        ASSERT_EQ(elem, logical_after_overwrite[j]);
     })
 
     int physical_after_overwrite[] = {8, 9, 10, 3, 4, 5, 6, 7};
