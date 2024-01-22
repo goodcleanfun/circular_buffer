@@ -1,6 +1,6 @@
 {
     "name": "circular_buffer",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "repo": "goodcleanfun/circular_buffer",
     "description": "Generic circular buffer in C",
     "keywords": ["circular-buffer", "queue"],
